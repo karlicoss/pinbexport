@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Dict, NamedTuple, Sequence, Optional, Iterable, Iterator
 import json
 import logging
+import pytz
 
 from kython.kerror import Res, echain, unwrap, sort_res_by
 from kython.klogging import setup_logzero
@@ -23,9 +24,12 @@ def _get_last() -> Path:
 Url = str
 Tag = str
 
+
+# TODO can 'hash' be used as ID? not sure..
 class Entry(NamedTuple):
     created: datetime
     url: Url
+    title: str
     description: str
     tags: Sequence[Tag]
     deleted_dt: Optional[datetime]=None
@@ -37,24 +41,26 @@ class Entry(NamedTuple):
     @classmethod
     def try_parse(cls, js) -> Iterable[Res['Entry']]:
         try:
-            urls  = js['href']
-            dts   = js['time']
-            tagss = js['tags']
-            descs = js['description']
+            urls   = js['href']
+            dts    = js['time']
+            tagss  = js['tags']
+            titles = js['description']
+            descs  = js['extended']
+            created = pytz.utc.localize(datetime.strptime(dts, '%Y-%m-%dT%H:%M:%SZ'))
+
+            if titles == False:
+                titles = '' # *shrug* but happened once
         except Exception as e:
             yield echain(f'error while parsing {js}', e)
             return
         else:
             yield cls(
-                created=dts,
+                created=created,
                 url=urls,
+                title=titles,
                 description=descs,
                 tags=tuple(tagss.split()),
             )
-# {"href":"https:\/\/www.booking.com\/hotel\/gb\/tarn-hows.en-gb.html?aid=397594;label=gog235jc-1DCAEoggI46AdICVgDaFCIAQGYAQm4AQjIAQzYAQPoAQH4AQKIAgGoAgO4Ar2FneUFwAIB;sid=949119fe10304ddc1bbbbc967ce97f70;atlas_src=sr_iw_btn;checkin=2019-05-22;checkout=201
-# 9-05-26;dist=0;group_adults=1;group_children=0;nflt=pri%3D2%3B;no_rooms=1;room1=A;sb_price_type=total;type=total;ucfs=1&","description":"Tarn Hows, Keswick \u2013 Updated 2019 Prices","extended":"","meta":"e03e43ce89b5d6471b196dbb1d48cb7b","hash":"cb8775
-# d288009592a58e8cc3e4decd68","time":"2019-04-05T12:21:12Z","shared":"no","toread":"yes","tags":""},
-
 
 Result = Res[Entry]
 
@@ -85,7 +91,7 @@ def get_ok_entries() -> List[Entry]:
 def test():
     datas = get_ok_entries()
     assert len(datas) > 100
-    assert any('хранение шума' in x.description for x in datas)
+    assert any('хранение шума' in x.title for x in datas)
 
 
 def main():
