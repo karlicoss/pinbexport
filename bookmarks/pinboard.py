@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, NamedTuple, Sequence, Optional, Iterable, Iterator
+from typing import List, Dict, NamedTuple, Sequence, Optional, Iterable, Iterator, Set
 import json
 import logging
 import pytz
 
-from kython.kerror import Res, echain, unwrap, sort_res_by
+from kython.kerror import ResT, echain, unwrap, sort_res_by
 from kython.klogging import setup_logzero
 
 
@@ -25,7 +25,18 @@ Url = str
 Tag = str
 
 
-# TODO can 'hash' be used as ID? not sure..
+class Error(Exception):
+    def __init__(self, raw: Dict) -> None:
+        super().__init__(f'error while processing {raw}')
+        self.raw = raw
+
+    @property
+    def uid(self) -> str:
+        return self.raw['hash']
+
+
+Result = ResT['Entry', Error]
+
 class Entry(NamedTuple):
     created: datetime
     url: Url
@@ -35,11 +46,15 @@ class Entry(NamedTuple):
     deleted_dt: Optional[datetime]=None
 
     @property
+    def uid(self) -> str:
+        return self.url
+
+    @property
     def is_deleted(self):
         return self.deleted_dt is not None
 
     @classmethod
-    def try_parse(cls, js) -> Iterable[Res['Entry']]:
+    def try_parse(cls, js) -> Iterable[Result]:
         try:
             urls   = js['href']
             dts    = js['time']
@@ -51,7 +66,7 @@ class Entry(NamedTuple):
             if titles == False:
                 titles = '' # *shrug* but happened once
         except Exception as e:
-            yield echain(f'error while parsing {js}', e)
+            yield echain(Error(raw=js), e)
             return
         else:
             yield cls(
@@ -62,17 +77,23 @@ class Entry(NamedTuple):
                 tags=tuple(tagss.split()),
             )
 
-Result = Res[Entry]
-
 
 def iter_entries() -> Iterator[Result]:
+    logger = get_logger()
     pp = _get_last()
+    seen: Set[str] = set()
     for jj in json.loads(pp.read_text()):
+        hh = jj['hash']
+        if hh in seen:
+            logger.warning('skipping duplicate item %s', jj)
+            # huh, quite a few of them...
+            continue
+        seen.add(hh)
         yield from Entry.try_parse(jj)
 
 
 def get_entries() -> List[Result]:
-    return list(sort_res_by(iter_entries(), key=lambda e: e.created))
+    return list(sort_res_by(iter_entries(), key=lambda e: e.created)) 
 
 
 def get_ok_entries() -> List[Entry]:
