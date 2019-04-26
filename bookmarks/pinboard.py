@@ -93,7 +93,7 @@ def iter_entries() -> Iterator[Result]:
 
 
 def get_entries() -> List[Result]:
-    return list(sort_res_by(iter_entries(), key=lambda e: e.created)) 
+    return list(sort_res_by(iter_entries(), key=lambda e: (e.created, e.url)))
 
 
 def get_ok_entries() -> List[Entry]:
