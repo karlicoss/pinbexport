@@ -65,9 +65,16 @@ class Model:
         self.sources = list(map(Path, sources))
         # TODO defensive = True?
 
-    def _bookmarks_raw(self) -> List[Json]:
+    def raw(self) -> Json:
         last = max(self.sources)
         return json.loads(last.read_text())
+
+    def _bookmarks_raw(self) -> List[Json]:
+        data = self.raw()
+        if isinstance(data, list):
+            return data # old format
+        else:
+            return data['posts']
 
     def iter_bookmars(self) -> Iterator[Bookmark]:
         logger = get_logger()
