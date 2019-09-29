@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
-from typing import NamedTuple, Optional, Sequence, Iterator
+from typing import NamedTuple, Optional, Sequence, Iterator, Union, Dict, List, Any, Set
 from pathlib import Path
 import json
 from datetime import datetime
 import logging
+
+import pytz
+
+PathIsh = Union[str, Path]
+Json = Dict[str, Any]
 
 Url = str
 Tag = str
 
 
 def get_logger():
-    return logging.getLogger('pinboard')
+    return logging.getLogger('pinbexport')
 
 
 class Bookmark(NamedTuple):
@@ -19,67 +24,66 @@ class Bookmark(NamedTuple):
     title: str
     description: str
     tags: Sequence[Tag]
-
     error: Optional[Exception]=None
 
-    @classmethod
-    def make_error(cls, exc: Exception) -> 'Bookmark':
-        return cls(
-            error=exc,
-        )
+    # @classmethod
+    # def make_error(cls, exc: Exception) -> 'Bookmark':
+    #     return cls(
+    #         error=exc,
+    #     )
 
     @classmethod
     def try_parse(cls, js):
         try:
+            # TODO hash?
             urls   = js['href']
             dts    = js['time']
-            tagss  = js['tags']
             titles = js['description']
             descs  = js['extended']
+            tags   = tuple(js['tags'].split())
+            # TODO isoformat?
             created = pytz.utc.localize(datetime.strptime(dts, '%Y-%m-%dT%H:%M:%SZ'))
 
             if titles == False:
-                titles = '' # *shrug* but happened once
+                titles = '' # *shrug* happened once
         except Exception as e:
-            yield echain(Error(raw=js), e)
-            return
-        else:
-            yield cls(
-                created=created,
-                url=urls,
-                title=titles,
-                description=descs,
-                tags=tuple(tagss.split()),
-            )
+            raise e
+            # TODO imlement error handling later..
+            # yield echain(Error(raw=js), e)
+        yield cls(
+            created=created,
+            url=urls,
+            title=titles,
+            description=descs,
+            tags=tags,
+        )
+
 
 class Model:
-    def __init__(self, sources: Sequence[Path]) -> None:
+    def __init__(self, sources: Sequence[PathIsh]) -> None:
         # TODO FIXME use new style exports
-        # TODO FIXME take pathish everywhere?
         self.sources = list(map(Path, sources))
         # TODO defensive = True?
 
-    def _iter_raw(self):
+    def _bookmarks_raw(self) -> List[Json]:
         last = max(self.sources)
-        j = json.loads(last.read_text())
-        if isinstance(j, list):
-            # TODO ugh. old style export
-            annotations = j
-        else:
-            annotations = j['annotations']
-        yield from annotations
+        return json.loads(last.read_text())
 
+    def iter_bookmars(self) -> Iterator[Bookmark]:
+        logger = get_logger()
+        emitted = set() # type: Set[Bookmark]
+        for a in self._bookmarks_raw():
+            for b in Bookmark.try_parse(a):
+                if b in emitted:
+                    # TODO could also detect that by hash?
+                    logger.info('skipping duplicate item %s', b)
+                    continue
+                emitted.add(b)
+                yield b
 
+    def bookmarks(self) -> Sequence[Bookmark]:
+        return list(self.iter_bookmars())
 
-from datetime import datetime
-from pathlib import Path
-from typing import List, Dict, NamedTuple, Sequence, Optional, Iterable, Iterator, Set
-import json
-import logging
-import pytz
-
-from kython.kerror import ResT, echain, unwrap, sort_res_by
-from kython.klogging import setup_logzero
 
 class Error(Exception):
     def __init__(self, raw: Dict) -> None:
@@ -91,44 +95,21 @@ class Error(Exception):
         return self.raw['hash']
 
 
-Result = ResT[Bookmark, Error]
-
-
-
-def iter_entries() -> Iterator[Result]:
-    logger = get_logger()
-    pp = _get_last()
-    seen: Set[str] = set()
-    for jj in json.loads(pp.read_text()):
-        hh = jj['hash']
-        if hh in seen:
-            logger.warning('skipping duplicate item %s', jj)
-            # huh, quite a few of them...
-            continue
-        seen.add(hh)
-        yield from Bookmark.try_parse(jj)
-
-
-def get_entries() -> List[Result]:
-    return list(sort_res_by(iter_entries(), key=lambda e: (e.created, e.url)))
-
-
-def get_ok_entries() -> List[Bookmark]:
-    logger = get_logger()
-    results = []
-    for x in get_entries():
-        try:
-            res = unwrap(x)
-        except Exception as e:
-            logger.exception(e)
-        else:
-            results.append(res)
-    return results
-
-
-def test_errors(tmp_path):
-    print(tmp_path)
-    pass
+# def get_entries() -> List[Result]:
+#     return list(sort_res_by(iter_entries(), key=lambda e: (e.created, e.url)))
+# 
+# 
+# def get_ok_entries() -> List[Bookmark]:
+#     logger = get_logger()
+#     results = []
+#     for x in get_entries():
+#         try:
+#             res = unwrap(x)
+#         except Exception as e:
+#             logger.exception(e)
+#         else:
+#             results.append(res)
+#     return results
 
 # TODO motivation for having historic backups: can keep track of changes (if you're into that sort of stats)
 # TODO why data backups are hard: defensive parsing so it wouldn't require your attention immediately?
