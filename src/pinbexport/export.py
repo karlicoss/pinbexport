@@ -6,7 +6,7 @@ from typing import Dict, NamedTuple, List, Any
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
-from export_helper import Json
+from .exporthelpers.export_helper import Json
 
 
 class Exporter:
@@ -34,7 +34,7 @@ def get_json(**params):
     return Exporter(**params).export_json()
 
 
-def main():
+def main() -> None:
     parser = make_parser()
     args = parser.parse_args()
 
@@ -46,8 +46,8 @@ def main():
     dumper(js)
 
 
-def make_parser():
-    from export_helper import setup_parser, Parser
+def make_parser() -> argparse.ArgumentParser:
+    from .exporthelpers.export_helper import setup_parser, Parser
     parser = Parser('Export your bookmarks from Pinboard')
     setup_parser(
         parser=parser,
