@@ -48,7 +48,7 @@ def main() -> None:
 
 def make_parser() -> argparse.ArgumentParser:
     from .exporthelpers.export_helper import setup_parser, Parser
-    parser = Parser('Export your bookmarks from Pinboard')
+    parser = Parser('Export your bookmarks from [[https://pinboard.in][Pinboard]]')
     setup_parser(
         parser=parser,
         params=['token'],

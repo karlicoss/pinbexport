@@ -1,12 +1,22 @@
-Export your bookmarks from [[https://pinboard.in][Pinboard]].
+#+begin_src python :dir src :results drawer :exports results
+import pinbexport.export as E; return E.make_parser().prog
+#+end_src
+
+#+RESULTS:
+:results:
+Export your bookmarks from [[https://pinboard.in][Pinboard]]
+:end:
 
 * Setting up
-1. Get your Pinboard =token= from [[https://pinboard.in/settings/password][password]] page.
+1. The easiest way is ~pip3 install --user git+https://github.com/karlicoss/pinbexport~.
+
+   Alternatively, use ~git clone --recursive~, or ~git pull && git submodule update --init~. After that, you can use ~pip3 install --editable~.
+2. Get your Pinboard =token= from [[https://pinboard.in/settings/password][password]] page.
 
 * Exporting
 
-#+begin_src python :results drawer :exports results 
-import export; return export.make_parser().epilog
+#+begin_src python :dir src :results drawer :exports results
+import pinbexport.export as E; return E.make_parser().epilog
 #+end_src
 
 #+RESULTS:
@@ -22,20 +32,20 @@ Usage:
 
 After that, use:
 
-: ./export.py --secrets /path/to/secrets.py
+: python3 -m pinbexport.export --secrets /path/to/secrets.py
 
 That way you type less and have control over where you keep your plaintext secrets.
 
 *Alternatively*, you can pass parameters directly, e.g.
 
-: ./export.py --token <token>
+: python3 -m pinbexport.export --token <token>
 
 However, this is verbose and prone to leaking your keys/tokens/passwords in shell history.
 
-    
+
 You can also import ~export.py~ this as a module and call ~get_json~ function directly to get raw JSON.
 
 
 I *highly* recommend checking exported files at least once just to make sure they contain everything you expect from your export. If not, please feel free to ask or raise an issue!
-    
+
 :end:
