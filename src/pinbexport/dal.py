@@ -7,20 +7,15 @@ import logging
 
 import pytz
 
-if __name__ == '__main__':
-    # see dal_helper.setup for the explanation
-    import dal_helper # type: ignore[import]
-    dal_helper.fix_imports(globals())
-
-from . import dal_helper  # type: ignore[no-redef]
-from .dal_helper import PathIsh, Json
+from .exporthelpers.dal_helper import PathIsh, Json
 
 
 Url = str
 Tag = str
 
-# TODO reuse logger from helper
-def get_logger():
+
+# todo reuse logger from helper
+def get_logger() -> logging.Logger:
     return logging.getLogger('pinbexport')
 
 
@@ -55,7 +50,7 @@ class Bookmark(NamedTuple):
 
 class DAL:
     def __init__(self, sources: Sequence[PathIsh]) -> None:
-        self.sources = list(map(Path, sources))
+        self.sources = [p if isinstance(p, Path) else Path(p) for p in sources]
 
     def raw(self) -> Json:
         # TODO merge them carefully
@@ -91,5 +86,5 @@ def demo(dal: DAL) -> None:
 
 
 if __name__ == '__main__':
-    logger = get_logger()
+    from .exporthelpers import dal_helper
     dal_helper.main(DAL=DAL, demo=demo)
