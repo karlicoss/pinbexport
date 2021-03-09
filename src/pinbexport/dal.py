@@ -10,7 +10,9 @@ import pytz
 from .exporthelpers.dal_helper import PathIsh, Json
 
 
-Url = str
+from typing import NewType
+Url = NewType('Url', str)
+
 Tag = str
 
 
@@ -55,7 +57,11 @@ class DAL:
     def raw(self) -> Json:
         # TODO merge them carefully
         last = max(self.sources)
-        return json.loads(last.read_text())
+        try:
+            return json.loads(last.read_text())
+        except Exception as e:
+            raise RuntimeError(f'While processing {last}') from e
+
 
     def _bookmarks_raw(self) -> Iterable[Json]:
         data = self.raw()
