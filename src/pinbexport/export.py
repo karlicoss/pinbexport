@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import json
-from typing import Dict, NamedTuple, List, Any
 
 from urllib.parse import urlencode
 from urllib.request import urlopen
@@ -11,16 +10,16 @@ from .exporthelpers.export_helper import Json
 
 class Exporter:
     def __init__(self, *args, **kwargs) -> None:
-        self.token = kwargs['token']
+        self.token: str = kwargs['token']
         self.api_base = 'https://api.pinboard.in/v1/'
 
-    def _get(self, endpoint: str):
-        query = urlencode([ # type: ignore
+    def _get(self, endpoint: str) -> Json:
+        query = urlencode([
             ('format'    , 'json'),
             ('auth_token', self.token),
         ])
         url = self.api_base + endpoint + '?' + query
-        return json.loads(urlopen(url).read(), encoding='utf8')
+        return json.loads(urlopen(url).read())
 
     def export_json(self) -> Json:
         return dict(
@@ -30,7 +29,7 @@ class Exporter:
         )
 
 
-def get_json(**params):
+def get_json(**params) -> Json:
     return Exporter(**params).export_json()
 
 
