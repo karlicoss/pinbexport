@@ -3,6 +3,8 @@
 dynamic = ["version"]  # version is managed by setuptools_scm
 name = "pinbexport"
 dependencies = [
+    "orjson",  # faster json parsing
+    "more-itertools",
 ]
 # TODO maybe split out DAL deps and export deps? might be nice
 
