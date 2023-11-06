@@ -1,33 +1,30 @@
 #!/usr/bin/env python3
-from typing import NamedTuple, Optional, Sequence, Iterator, Set, Iterable
-from pathlib import Path
-import json
 from datetime import datetime
-import logging
+import json
+from pathlib import Path
+from typing import NamedTuple, Sequence, Iterator, Set, Iterable, NewType
 
-import pytz
+from .exporthelpers import dal_helper
+from .exporthelpers.dal_helper import PathIsh, Json, datetime_aware
+from .exporthelpers.logging_helper import make_logger
 
-from .exporthelpers.dal_helper import PathIsh, Json
 
-
-from typing import NewType
 Url = NewType('Url', str)
 
 Tag = str
 
 
-# todo reuse logger from helper
-def get_logger() -> logging.Logger:
-    return logging.getLogger('pinbexport')
+logger = make_logger(__name__)
 
 
 class Bookmark(NamedTuple):
     raw: Json
 
     @property
-    def created(self) -> datetime:
+    def created(self) -> datetime_aware:
         dts = self.raw['time']
-        return pytz.utc.localize(datetime.strptime(dts, '%Y-%m-%dT%H:%M:%SZ'))
+        # contains Z at the end, so will end up as UTC
+        return datetime.fromisoformat(dts)
 
     @property
     def url(self) -> Url:
@@ -36,8 +33,8 @@ class Bookmark(NamedTuple):
     @property
     def title(self) -> str:
         titles = self.raw['description']
-        if titles == False:
-            titles = '' # *shrug* happened onc
+        if titles is False:
+            titles = ''  # *shrug* happened a few times
         return titles
 
     @property
@@ -47,7 +44,6 @@ class Bookmark(NamedTuple):
     @property
     def tags(self) -> Sequence[Tag]:
         return tuple(self.raw['tags'].split())
-
 
 
 class DAL:
@@ -62,25 +58,24 @@ class DAL:
         except Exception as e:
             raise RuntimeError(f'While processing {last}') from e
 
-
     def _bookmarks_raw(self) -> Iterable[Json]:
         data = self.raw()
         if isinstance(data, list):
-            return data # old format
+            return data  # old format
         else:
             return data['posts']
 
     def bookmarks(self) -> Iterator[Bookmark]:
         def key(b: Bookmark):
             return (b.created, b.url)
-        logger = get_logger()
+
         emitted: Set = set()
         for j in self._bookmarks_raw():
             bm = Bookmark(j)
             # TODO could also detect that by hash?
             bk = key(bm)
             if bk in emitted:
-                logger.debug('skipping duplicate item %s', bm)
+                logger.debug(f'skipping duplicate item {bm}')
                 continue
             emitted.add(bk)
             yield bm
@@ -92,5 +87,4 @@ def demo(dal: DAL) -> None:
 
 
 if __name__ == '__main__':
-    from .exporthelpers import dal_helper
     dal_helper.main(DAL=DAL, demo=demo)
