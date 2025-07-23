@@ -1,15 +1,13 @@
-#!/usr/bin/env python3
 import argparse
 import json
-
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
-from .exporthelpers.export_helper import Json, setup_parser, Parser
+from .exporthelpers.export_helper import Json, Parser, setup_parser
 
 
 class Exporter:
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args, **kwargs) -> None:  # noqa: ARG002
         self.token: str = kwargs['token']
         self.api_base = 'https://api.pinboard.in/v1/'
 
@@ -24,11 +22,11 @@ class Exporter:
         return json.loads(urlopen(url).read())
 
     def export_json(self) -> Json:
-        return dict(
-            tags=self._get('tags/get'),
-            posts=self._get('posts/all'),
-            notes=self._get('notes/list'),
-        )
+        return {
+            'tags': self._get('tags/get'),
+            'posts': self._get('posts/all'),
+            'notes': self._get('notes/list'),
+        }
 
 
 def get_json(**params) -> Json:
