@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+from collections.abc import Iterator, Sequence
 from datetime import datetime
-from typing import Iterator, NamedTuple, NewType, Sequence
+from typing import NamedTuple, NewType
 
 import orjson
 from more_itertools import unique_everseen
@@ -8,7 +8,6 @@ from more_itertools import unique_everseen
 from .exporthelpers import dal_helper
 from .exporthelpers.dal_helper import Json, PathIsh, Res, datetime_aware, pathify
 from .exporthelpers.logging_helper import make_logger
-
 
 Url = NewType('Url', str)
 
