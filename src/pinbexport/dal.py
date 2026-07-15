@@ -1,12 +1,13 @@
 from collections.abc import Iterator, Sequence
 from datetime import datetime
+from pathlib import Path
 from typing import NamedTuple, NewType
 
 import orjson
 from more_itertools import unique_everseen
 
 from .exporthelpers import dal_helper
-from .exporthelpers.dal_helper import Json, PathIsh, Res, datetime_aware, pathify
+from .exporthelpers.dal_helper import Json, Res, datetime_aware, pathify
 from .exporthelpers.logging_helper import make_logger
 
 Url = NewType('Url', str)
@@ -47,7 +48,7 @@ class Bookmark(NamedTuple):
 
 
 class DAL:
-    def __init__(self, sources: Sequence[PathIsh]) -> None:
+    def __init__(self, sources: Sequence[Path | str]) -> None:
         self.sources = list(map(pathify, sources))
 
     def raw(self) -> Iterator[Res[Json]]:
@@ -76,7 +77,9 @@ class DAL:
                 yield j
             else:
                 if isinstance(j, list):
-                    yield from j  # old format
+                    # old format
+                    # ty keeps the declared dict type when narrowing to list; revisit with a wider raw type.
+                    yield from j  # ty: ignore[invalid-yield]
                 else:
                     yield from j['posts']
 
