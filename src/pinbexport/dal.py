@@ -78,8 +78,7 @@ class DAL:
             else:
                 if isinstance(j, list):
                     # old format
-                    # ty keeps the declared dict type when narrowing to list; revisit with a wider raw type.
-                    yield from j  # ty: ignore[invalid-yield]
+                    yield from j
                 else:
                     yield from j['posts']
 
