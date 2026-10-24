@@ -1,3 +1,0 @@
-[submodule "src/pinbexport/exporthelpers"]
-	path = src/pinbexport/exporthelpers
-	url = https://github.com/karlicoss/exporthelpers.git

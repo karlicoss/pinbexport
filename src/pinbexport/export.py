@@ -3,7 +3,8 @@ import json
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
-from .exporthelpers.export_helper import Json, Parser, setup_parser
+import hpikit.cli.export as cli
+from hpikit.json import Json
 
 
 class Exporter:
@@ -37,21 +38,19 @@ def main() -> None:
     parser = make_parser()
     args = parser.parse_args()
 
-    params = args.params
-    dumper = args.dumper
+    params = cli.get_params(parser, args)
 
     j = get_json(**params)
     js = json.dumps(j, ensure_ascii=False, indent=1)
-    dumper(js)
+    cli.dump(js, path=args.path)
 
 
 def make_parser() -> argparse.ArgumentParser:
-    parser = Parser('Export your bookmarks from [[https://pinboard.in][Pinboard]]')
-    setup_parser(
-        parser=parser,
+    parser = cli.make_parser(
+        description='Export your bookmarks from [Pinboard](https://pinboard.in)',
         params=['token'],
         extra_usage='''
-You can also import ~export.py~ this as a module and call ~get_json~ function directly to get raw JSON.
+You can also import `export.py` this as a module and call `get_json` function directly to get raw JSON.
 ''',
     )
     return parser
